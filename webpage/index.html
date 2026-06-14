@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Barber Booking</title>
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Sarabun:wght@300;400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- ===== NAVBAR ===== -->
+  <nav class="navbar">
+    <ul class="nav-links">
+      <li><a href="#home">Home</a></li>
+      <li><a href="#booking">Booking</a></li>
+      <li><a href="#queue">Queue Status</a></li>
+      <li><a href="#services">Services</a></li>
+      <li><a href="#gallery">Gallery</a></li>
+      <li><a href="#location">Location</a></li>
+      <li><a href="#news">News</a></li>
+      <li><a href="#contact">Contact us</a></li>
+    </ul>
+  </nav>
+
+  <!-- ===== HERO ===== -->
+  <section id="home" class="hero">
+    <div class="hero-text">
+      <h1 class="hero-title">BARBER<br />BOOKING</h1>
+      <p class="hero-desc">
+        จองง่าย รู้คิวจริง ไม่ต้องรอนาน<br />
+        ยกระดับการใช้บริการร้านตัดผมด้วยระบบจองคิวออนไลน์<br />
+        ที่ช่วยให้คุณสามารถเลือกวัน เวลา และตรวจสอบจำนวนคิวที่เหลือได้แบบเรียลไทม์
+      </p>
+      <a href="#booking" class="btn-primary">Appointment</a>
+    </div>
+    <div class="hero-image">
+      <img src="hero.jpg" alt="Barber" />
+    </div>
+  </section>
+
+  <!-- ===== BOOKING ===== -->
+  <section id="booking" class="section booking-section">
+    <h2 class="section-title">จองคิว</h2>
+    <p class="section-sub">เลือกสาขาและกรอกข้อมูลเพื่อจองคิวของคุณ</p>
+
+    <div class="booking-card">
+      <!-- ขั้นตอนที่ 1: เลือกสาขา -->
+      <div class="booking-step" id="step1">
+        <h3 class="step-title">เลือกสาขา</h3>
+        <div class="branch-grid">
+          <div class="branch-card" data-branch="สาขา 1 - สยาม">
+            <span class="branch-name">สาขา 1</span>
+            <span class="branch-location">สยาม</span>
+            <span class="branch-queue" id="queue-branch1">คิวปัจจุบัน: <strong>—</strong></span>
+          </div>
+          <div class="branch-card" data-branch="สาขา 2 - อโศก">
+            <span class="branch-name">สาขา 2</span>
+            <span class="branch-location">อโศก</span>
+            <span class="branch-queue" id="queue-branch2">คิวปัจจุบัน: <strong>—</strong></span>
+          </div>
+          <div class="branch-card" data-branch="สาขา 3 - ลาดพร้าว">
+            <span class="branch-name">สาขา 3</span>
+            <span class="branch-location">ลาดพร้าว</span>
+            <span class="branch-queue" id="queue-branch3">คิวปัจจุบัน: <strong>—</strong></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ขั้นตอนที่ 2: กรอกชื่อ -->
+      <div class="booking-step" id="step2" style="display:none;">
+        <h3 class="step-title">กรอกข้อมูล</h3>
+        <div class="form-group">
+          <label for="customer-name">ชื่อของคุณ</label>
+          <input type="text" id="customer-name" placeholder="เช่น สมชาย ใจดี" />
+        </div>
+        <div class="form-group">
+          <label for="customer-phone">เบอร์โทร (ไม่บังคับ)</label>
+          <input type="tel" id="customer-phone" placeholder="0812345678" />
+        </div>
+        <div class="form-row">
+          <button class="btn-secondary" id="btn-back">← ย้อนกลับ</button>
+          <button class="btn-primary" id="btn-confirm">ยืนยันจองคิว</button>
+        </div>
+      </div>
+
+      <!-- ขั้นตอนที่ 3: ผลลัพธ์ -->
+      <div class="booking-step" id="step3" style="display:none;">
+        <div class="booking-result">
+          <div class="result-icon">✓</div>
+          <h3>จองคิวสำเร็จ!</h3>
+          <p id="result-name"></p>
+          <p id="result-branch"></p>
+          <div class="queue-number-box">
+            <span class="queue-label">หมายเลขคิวของคุณ</span>
+            <span class="queue-number" id="result-queue-number">—</span>
+          </div>
+          <p class="result-note">กรุณาแสดงหมายเลขคิวนี้ที่ร้าน</p>
+          <button class="btn-primary" id="btn-new-booking">จองคิวใหม่</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== QUEUE STATUS ===== -->
+  <section id="queue" class="section queue-section">
+    <h2 class="section-title">สถานะคิว</h2>
+    <p class="section-sub">ดูคิวปัจจุบันของแต่ละสาขาแบบเรียลไทม์</p>
+
+    <div class="queue-grid">
+      <div class="queue-status-card">
+        <h3>สาขา 1 — สยาม</h3>
+        <div class="queue-display">
+          <span class="queue-current-label">กำลังให้บริการคิวที่</span>
+          <span class="queue-current-number" id="serving-branch1">1</span>
+        </div>
+        <div class="queue-list" id="list-branch1"></div>
+      </div>
+      <div class="queue-status-card">
+        <h3>สาขา 2 — อโศก</h3>
+        <div class="queue-display">
+          <span class="queue-current-label">กำลังให้บริการคิวที่</span>
+          <span class="queue-current-number" id="serving-branch2">1</span>
+        </div>
+        <div class="queue-list" id="list-branch2"></div>
+      </div>
+      <div class="queue-status-card">
+        <h3>สาขา 3 — ลาดพร้าว</h3>
+        <div class="queue-display">
+          <span class="queue-current-label">กำลังให้บริการคิวที่</span>
+          <span class="queue-current-number" id="serving-branch3">1</span>
+        </div>
+        <div class="queue-list" id="list-branch3"></div>
+      </div>
+    </div>
+  </section>
+
+  <script src="main.js"></script>
+</body>
+</html>

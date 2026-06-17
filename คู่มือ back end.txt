@@ -1,0 +1,90 @@
+สอนเลยครับ แบ่งเป็น 2 ส่วน
+
+ส่วนที่ 1 — ได้ Token จาก LINE Notify
+
+เปิด https://notify-bot.line.me/th/
+Login ด้วยบัญชี LINE
+กด "สร้าง Token" มุมขวาบน
+ตั้งชื่อ เช่น ร้านตัดผม สาขา 1
+เลือกส่งเข้า ห้องแชทของตัวเอง (ทดสอบก่อน)
+Copy Token เก็บไว้ มีแค่ครั้งเดียวครับ
+
+
+ส่วนที่ 2 — Python ส่งแจ้งเตือน
+ติดตั้ง library ก่อนครับ
+bashpip install flask requests flask-cors
+จากนั้นสร้างไฟล์ app.py
+pythonfrom flask import Flask, request, jsonify
+from flask_cors import CORS
+import requests
+
+app = Flask(__name__)
+CORS(app)  # อนุญาตให้เว็บเรียก API ได้
+
+# ใส่ Token ของแต่ละสาขา
+LINE_TOKENS = {
+    "สาขา 1 - สยาม":      "TOKEN_สาขา1_ใส่ตรงนี้",
+    "สาขา 2 - อโศก":      "TOKEN_สาขา2_ใส่ตรงนี้",
+    "สาขา 3 - ลาดพร้าว":  "TOKEN_สาขา3_ใส่ตรงนี้",
+}
+
+def send_line_notify(token, message):
+    url = "https://notify-api.line.me/api/notify"
+    headers = {"Authorization": f"Bearer {token}"}
+    data = {"message": message}
+    response = requests.post(url, headers=headers, data=data)
+    return response.status_code
+
+@app.route("/api/notify", methods=["POST"])
+def notify():
+    data = request.get_json()
+
+    branch      = data.get("branch")
+    queue_number = data.get("queueNumber")
+    name        = data.get("name")
+
+    # เลือก Token ตามสาขา
+    token = LINE_TOKENS.get(branch)
+    if not token:
+        return jsonify({"error": "ไม่พบสาขา"}), 400
+
+    # สร้างข้อความแจ้งเตือน
+    message = f"""
+🔔 มีคิวใหม่!
+━━━━━━━━━━━━
+สาขา     : {branch}
+หมายเลขคิว: #{queue_number}
+ชื่อลูกค้า : {name}
+━━━━━━━━━━━━
+"""
+    status = send_line_notify(token, message)
+
+    if status == 200:
+        return jsonify({"success": True})
+    else:
+        return jsonify({"error": "ส่ง LINE ไม่สำเร็จ"}), 500
+
+if __name__ == "__main__":
+    app.run(debug=True)
+
+ส่วนที่ 3 — เชื่อม JavaScript กับ Backend
+ใน main.js เปิด comment ที่ทำไว้ให้ครับ แล้วแก้เป็นแบบนี้
+javascriptasync function sendLineNotify(branch, queueNumber, name) {
+    try {
+        await fetch("http://localhost:5000/api/notify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ branch, queueNumber, name })
+        });
+    } catch (err) {
+        console.error("ส่ง LINE ไม่สำเร็จ:", err);
+    }
+}
+แล้วเรียกใช้ใน bookQueue() หลังบรรทัดที่เพิ่มคิวเข้าระบบ
+javascriptsendLineNotify(selectedBranch, queueNumber, name);
+
+วิธีรันทดสอบ
+bashpython app.py
+แล้วเปิดเว็บลองจองคิว LINE ของร้านจะได้รับแจ้งเตือนทันทีครับ
+
+ลองทำได้เลยครับ ติดตรงไหนถามได้เลย จะช่วยแก้ให้ครับ

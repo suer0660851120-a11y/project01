@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AR AI Social - Educational Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- MediaPipe Tasks Vision -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.js" crossorigin="anonymous"></script>
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600;800&display=swap');
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: 'Prompt', sans-serif; background-color: #000; }
+        #video-background { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; transform: scaleX(-1); z-index: 1; }
+        #three-canvas { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2; pointer-events: none; }
+        #mediapipe-canvas { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 3; pointer-events: none; transform: scaleX(-1); }
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; }
+        .glass-panel { background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 16px; color: white; }
+        .choice-label { position: absolute; transform: translate(-50%, -50%); padding: 15px 30px; font-size: 1.5rem; font-weight: bold; color: white; background: rgba(0, 0, 0, 0.7); border: 2px solid rgba(255,255,255,0.5); border-radius: 50px; pointer-events: none; z-index: 4; text-align: center; min-width: 200px; }
+        .choice-label.hovered { background: rgba(59, 130, 246, 0.9); transform: translate(-50%, -50%) scale(1.1); box-shadow: 0 0 20px #3b82f6; }
+        .pointer-events-auto { pointer-events: auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .loader { border: 8px solid rgba(255,255,255,0.2); border-top: 8px solid white; border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite; }
+        .floating-score { position: absolute; font-size: 3rem; font-weight: bold; z-index: 20; pointer-events:none; }
+    </style>
+</head>
+<body>
+    <video id="video-background" autoplay playsinline></video>
+    <canvas id="three-canvas"></canvas>
+    <canvas id="mediapipe-canvas"></canvas>
+    <div id="labels-container"></div>
+    <div id="ui-layer" class="flex flex-col justify-between p-4 pointer-events-none">
+        <div id="hud" class="hidden flex justify-between items-start w-full">
+            <div class="glass-panel p-4 flex flex-col gap-2 pointer-events-auto">
+                <div class="text-2xl font-bold">⭐ คะแนน: <span id="score" class="text-yellow-300">0</span></div>
+                <div class="text-lg">📝 ข้อ: <span id="question-num">1</span>/20</div>
+            </div>
+        </div>
+        <div id="start-screen" class="absolute inset-0 flex items-center justify-center pointer-events-auto bg-black/60 backdrop-blur-md z-50">
+            <div class="glass-panel p-10 text-center max-w-lg w-full flex flex-col items-center">
+                <h1 class="text-5xl font-extrabold mb-4">AR AI Social</h1>
+                <div id="loading-status" class="flex flex-col items-center mb-6">
+                    <div class="loader mb-4"></div>
+                    <p class="text-blue-300">กำลังโหลดโมเดล AI...</p>
+                </div>
+                <button id="start-btn" class="hidden px-8 py-4 bg-blue-600 text-white font-bold rounded-full w-full">เริ่มเกม</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Game Initialization ---
+        const questionsDB = [
+            { question: "สิ่งใดช่วยพัฒนาคุณภาพชีวิตในชุมชนได้ดีที่สุด?", choices: ["การศึกษา", "การพนัน", "การสร้างข่าวปลอม"], answer: 0 },
+            { question: "การกลั่นแกล้งบนโลกออนไลน์ (Cyberbullying) ควรทำอย่างไร?", choices: ["แชร์ต่อ", "เพิกเฉย", "แจ้งผู้ดูแล/บล็อก"], answer: 2 },
+            { question: "AI ย่อมาจากคำว่าอะไร?", choices: ["Auto Internet", "Artificial Intelligence", "Alien Invasion"], answer: 1 },
+            { question: "หากเจอข่าวที่น่าตกใจใน Social Media ควรทำอย่างไรเป็นอันดับแรก?", choices: ["แชร์ให้เพื่อนทันที", "ตรวจสอบแหล่งที่มา", "คอมเมนต์ด่าทอ"], answer: 1 }
+        ];
+
+        // Ensure MediaPipe is loaded globally
+        window.addEventListener('load', async () => {
+            console.log("Initializing Game...");
+            const game = new GameManager();
+        });
+
+        class GameManager {
+            constructor() {
+                this.state = 'INIT';
+                this.init();
+            }
+
+            async init() {
+                try {
+                    // Fix: Ensure we access the library globally
+                    const vision = await FilesetResolver.forVisionTasks(
+                        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
+                    );
+                    
+                    this.handLandmarker = await HandLandmarker.createFromOptions(vision, {
+                        baseOptions: {
+                            modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+                            delegate: "GPU"
+                        },
+                        runningMode: "VIDEO",
+                        numHands: 1
+                    });
+
+                    document.getElementById('loading-status').classList.add('hidden');
+                    const startBtn = document.getElementById('start-btn');
+                    startBtn.classList.remove('hidden');
+                    startBtn.addEventListener('click', () => this.startGame());
+                } catch (e) {
+                    console.error("Init Error:", e);
+                    alert("เกิดข้อผิดพลาดในการโหลด AI: " + e.message);
+                }
+            }
+
+            startGame() {
+                document.getElementById('start-screen').classList.add('hidden');
+                document.getElementById('hud').classList.remove('hidden');
+                console.log("Game Started");
+            }
+        }
+    </script>
+</body>
+</html>
